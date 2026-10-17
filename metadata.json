@@ -1,0 +1,8 @@
+{
+  "name": "PartnerFind",
+  "description": "Platform global yang mempertemukan orang dari seluruh dunia untuk mencari partner, melakukan kerja sama, dan menghasilkan uang.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

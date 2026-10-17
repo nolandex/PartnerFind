@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    match /tokens/{tokenId} {
+      // Anyone can read a single token (needed to validate invite links)
+      allow get: if isValidId(tokenId);
+      allow list:   if true;
+      allow create: if isValidId(tokenId);
+      allow update: if isValidId(tokenId);
+      allow delete: if isValidId(tokenId);
+    }
+
+    match /creator_invites/{inviteId} {
+      // Access for validating profile creator invite links
+      allow get: if isValidId(inviteId);
+      allow list:   if true;
+      allow create: if isValidId(inviteId);
+      allow update: if isValidId(inviteId);
+      allow delete: if isValidId(inviteId);
+    }
+
+    match /profiles/{profileId} {
+      // Public partner profiles visible to all, manageable by creator
+      allow get, list: if true;
+      allow create: if isValidId(profileId);
+      allow update: if isValidId(profileId);
+      allow delete: if isValidId(profileId);
+    }
+
+    match /settings/{settingId} {
+      // Synchronized counter and general settings
+      allow get, list: if true;
+      allow create, update: if isValidId(settingId);
+      allow delete: if false;
+    }
+  }
+}
+
+

@@ -1,0 +1,1 @@
+- [Language and navbar unification](language-and-navbar-unification.md) — keep course UI and content language derived from the landing-page language context, and consolidate course-page navigation into a single top navbar.
