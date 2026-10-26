@@ -49,7 +49,6 @@ import {
   Clock,
   Megaphone,
   Timer,
-  CreditCard,
   QrCode,
   CheckCircle2,
   AlertCircle,
@@ -99,12 +98,6 @@ import {
   saveAnnouncementConfig,
   subscribeAnnouncement
 } from '../lib/announcementService';
-import {
-  PaymentSettingsConfig,
-  DEFAULT_PAYMENT_SETTINGS,
-  savePaymentSettings,
-  subscribePaymentSettings
-} from '../lib/paymentSettingsService';
 import {
   CtaConfig,
   DEFAULT_CTA_CONFIG,
@@ -170,8 +163,8 @@ export default function Admin() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   
-  // 4 Admin choices: 'creator' (Pembuat Profil & Mitra) | 'content' (Atur Konten Website) | 'rules' (Angka Live & Countdown) | 'payment' (Payment Gateway)
-  const [activeTab, setActiveTab] = useState<'creator' | 'content' | 'rules' | 'payment'>('creator');
+  // 3 Admin choices: 'creator' (Pembuat Profil & Mitra) | 'content' (Atur Konten Website) | 'rules' (Angka Live & Countdown)
+  const [activeTab, setActiveTab] = useState<'creator' | 'content' | 'rules'>('creator');
   const [rulesFilter, setRulesFilter] = useState<'all' | 'hero' | 'countdown' | 'cta' | 'video'>('all');
   
   // ── Website Content State (Embed Video, Gambar, Teks) ──
@@ -227,11 +220,6 @@ export default function Admin() {
     });
   };
 
-  // Payment Gateway Visibility / Settings state
-  const [paymentConfig, setPaymentConfig] = useState<PaymentSettingsConfig>(DEFAULT_PAYMENT_SETTINGS);
-  const [savingPayment, setSavingPayment] = useState(false);
-  const [paymentSuccessMsg, setPaymentSuccessMsg] = useState('');
-  
   // Announcement Bar state
   const [announcementConfig, setAnnouncementConfig] = useState<AnnouncementBarConfig>(DEFAULT_ANNOUNCEMENT);
   const [announcementEnabled, setAnnouncementEnabled] = useState(true);
@@ -498,7 +486,7 @@ export default function Admin() {
 
   // Ref to prevent background counter ticks from overwriting active form inputs
   const hasInitializedRulesRef = useRef(false);
-  const prevTabRef = useRef<'creator' | 'content' | 'rules' | 'payment'>('creator');
+  const prevTabRef = useRef<'creator' | 'content' | 'rules'>('creator');
 
   // Sync inputs ONLY on initial fetch or when specifically switching tabs to 'rules'
   useEffect(() => {
@@ -685,43 +673,6 @@ export default function Admin() {
     });
     return () => unsubscribe();
   }, [authed]);
-
-  // Subscribe to payment configuration from Firestore
-  useEffect(() => {
-    if (!authed) return;
-    const unsubscribe = subscribePaymentSettings((cfg) => {
-      setPaymentConfig(cfg);
-    });
-    return () => unsubscribe();
-  }, [authed]);
-
-  const handleTogglePayment = async (newEnabled: boolean) => {
-    setSavingPayment(true);
-    setPaymentSuccessMsg('');
-    const ok = await savePaymentSettings({ enabled: newEnabled }, currentAdminEmail);
-    setSavingPayment(false);
-    if (ok) {
-      setPaymentSuccessMsg(
-        newEnabled
-          ? 'Section pembayaran berhasil DIAKTIFKAN & ditampilkan di halaman utama website!'
-          : 'Section pembayaran berhasil DINONAKTIFKAN (disembunyikan) dari halaman utama website!'
-      );
-      setTimeout(() => setPaymentSuccessMsg(''), 5000);
-    } else {
-      alert('Gagal memperbarui pengaturan pembayaran ke database.');
-    }
-  };
-
-  const handleUpdateGatewayMode = async (mode: 'both' | 'pakasir' | 'midtrans') => {
-    setSavingPayment(true);
-    setPaymentSuccessMsg('');
-    const ok = await savePaymentSettings({ ...paymentConfig, gatewayMode: mode }, currentAdminEmail);
-    setSavingPayment(false);
-    if (ok) {
-      setPaymentSuccessMsg(`Mode saluran gateway pembayaran diperbarui ke: ${mode.toUpperCase()}`);
-      setTimeout(() => setPaymentSuccessMsg(''), 4000);
-    }
-  };
 
   const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1249,22 +1200,6 @@ export default function Admin() {
                 Counter & Waktu
               </span>
             </button>
-            <button
-              onClick={() => setActiveTab('payment')}
-              className={`pb-3 text-sm font-bold border-b-2 px-4 whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === 'payment' ? 'border-sky-400 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'
-              }`}
-            >
-              <CreditCard className="w-4 h-4 text-sky-400" />
-              <span>4. Pembayaran & Gateway</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                paymentConfig.enabled
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-              }`}>
-                {paymentConfig.enabled ? 'Aktif' : 'Disembunyikan'}
-              </span>
-            </button>
           </div>
 
           <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
@@ -1272,9 +1207,7 @@ export default function Admin() {
               ? 'Kelola link undangan pembuat profil (/buat-profil?invite=...) serta moderasi profil partner yang tersimpan di database Firestore.'
               : activeTab === 'content'
               ? 'Atur seluruh isi konten website secara fleksibel: Link embed video YouTube unggulan, link gambar & visual langkah kolaborasi, serta teks judul hero, fitur, CTA, dan footer.'
-              : activeTab === 'rules'
-              ? 'Pusat kendali aturan live counter: Angka Hero Live (Total Anggota & Total Grup) dan Countdown Target Announcement Bar. Seluruh perubahan tersinkronisasi secara real-time ke seluruh pengunjung.'
-              : 'Atur visibilitas section pembayaran di landing page serta konfigurasi gateway pembayaran Midtrans Snap & Pakasir QRIS.'}
+              : 'Pusat kendali aturan live counter: Angka Hero Live (Total Anggota & Total Grup) dan Countdown Target Announcement Bar. Seluruh perubahan tersinkronisasi secara real-time ke seluruh pengunjung.'}
           </p>
 
           {/* TAB 1: PEMBUAT PROFIL */}
@@ -2981,229 +2914,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* TAB 3: PENGATURAN PEMBAYARAN RINGKAS & SIMPEL */}
-      {activeTab === 'payment' && (
-        <div className="space-y-6">
-          {/* Success Notification */}
-          {paymentSuccessMsg && (
-            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2.5 animate-fadeIn">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{paymentSuccessMsg}</span>
-            </div>
-          )}
-
-          {/* 1. VISIBILITAS PEMBAYARAN (AKTIF / NONAKTIF) */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-neutral-900 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${paymentConfig.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-                <h3 className="text-sm font-bold text-white">
-                  Status Pembayaran Website: {paymentConfig.enabled ? (
-                    <span className="text-emerald-400 font-bold">AKTIF</span>
-                  ) : (
-                    <span className="text-rose-400 font-bold">NONAKTIF</span>
-                  )}
-                </h3>
-              </div>
-              <p className="text-xs text-neutral-400">
-                {paymentConfig.enabled
-                  ? 'Modul checkout & harga aktif dan tampil di halaman utama website.'
-                  : 'Modul checkout & harga disembunyikan dari halaman utama website.'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              disabled={savingPayment}
-              onClick={() => handleTogglePayment(!paymentConfig.enabled)}
-              className={`h-11 px-5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 ${
-                paymentConfig.enabled
-                  ? 'bg-rose-600/90 hover:bg-rose-600 text-white'
-                  : 'bg-emerald-400 hover:bg-emerald-300 text-neutral-950 shadow-sm'
-              }`}
-            >
-              {savingPayment ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : paymentConfig.enabled ? (
-                <>
-                  <EyeOff className="w-4 h-4" />
-                  <span>Sembunyikan Pembayaran</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 fill-current" />
-                  <span>Aktifkan Pembayaran</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* VISIBILITAS SECTION CTA (CALL TO ACTION / BAGIKAN) */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-neutral-900 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${ctaEnabled ? 'bg-purple-400 animate-pulse' : 'bg-neutral-600'}`} />
-                <h3 className="text-sm font-bold text-white">
-                  Status Section CTA Website: {ctaEnabled ? (
-                    <span className="text-purple-400 font-bold">AKTIF</span>
-                  ) : (
-                    <span className="text-neutral-400 font-bold">DISEMBUNYIKAN</span>
-                  )}
-                </h3>
-              </div>
-              <p className="text-xs text-neutral-400">
-                {ctaEnabled
-                  ? 'Bagian CTA (ajakan bergabung & tombol Bagikan dengan efek cahaya bahasa) tampil di atas globe.'
-                  : 'Bagian CTA disembunyikan dari halaman depan. Halaman dari Section 2 langsung ke globe.'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              disabled={savingCta}
-              onClick={() => handleToggleCta(!ctaEnabled)}
-              className={`h-11 px-5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 ${
-                ctaEnabled
-                  ? 'bg-rose-600/90 hover:bg-rose-600 text-white'
-                  : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm'
-              }`}
-            >
-              {savingCta ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : ctaEnabled ? (
-                <>
-                  <EyeOff className="w-4 h-4" />
-                  <span>Sembunyikan CTA</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4" />
-                  <span>Aktifkan CTA</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* VISIBILITAS EMBED VIDEO YOUTUBE */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-neutral-900 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${videoConfig.enabled ? 'bg-rose-400 animate-pulse' : 'bg-neutral-600'}`} />
-                <h3 className="text-sm font-bold text-white">
-                  Status Embed Video YouTube: {videoConfig.enabled ? (
-                    <span className="text-rose-400 font-bold">AKTIF</span>
-                  ) : (
-                    <span className="text-neutral-400 font-bold">DISEMBUNYIKAN</span>
-                  )}
-                </h3>
-              </div>
-              <p className="text-xs text-neutral-400">
-                {videoConfig.enabled
-                  ? 'Embed video YouTube unggulan aktif dan tampil di halaman depan di atas kolom pencarian.'
-                  : 'Embed video YouTube disembunyikan dari halaman depan website.'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              disabled={savingVideo}
-              onClick={() => handleToggleVideo(!videoConfig.enabled)}
-              className={`h-11 px-5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 ${
-                videoConfig.enabled
-                  ? 'bg-rose-600/90 hover:bg-rose-600 text-white'
-                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm'
-              }`}
-            >
-              {savingVideo ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : videoConfig.enabled ? (
-                <>
-                  <EyeOff className="w-4 h-4" />
-                  <span>Sembunyikan Video</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Aktifkan Video</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* 2. PILIHAN SALURAN PEMBAYARAN */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-300 font-mono flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-sky-400" />
-              <span>Pilihan Saluran Pembayaran (Gateway)</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <button
-                type="button"
-                disabled={savingPayment}
-                onClick={() => handleUpdateGatewayMode('both')}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  (paymentConfig.gatewayMode || 'both') === 'both'
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-white'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-xs">Keduanya (Semua)</span>
-                  {(paymentConfig.gatewayMode || 'both') === 'both' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  )}
-                </div>
-                <p className="text-[11px] text-neutral-400">
-                  Pakasir QRIS Instan & Midtrans Snap VA.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                disabled={savingPayment}
-                onClick={() => handleUpdateGatewayMode('pakasir')}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  paymentConfig.gatewayMode === 'pakasir'
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-white'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-xs">Pakasir (QRIS) Saja</span>
-                  {paymentConfig.gatewayMode === 'pakasir' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  )}
-                </div>
-                <p className="text-[11px] text-neutral-400">
-                  Hanya pembayaran QRIS otomatis via Pakasir.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                disabled={savingPayment}
-                onClick={() => handleUpdateGatewayMode('midtrans')}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  paymentConfig.gatewayMode === 'midtrans'
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-white'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-xs">Midtrans (Snap) Saja</span>
-                  {paymentConfig.gatewayMode === 'midtrans' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  )}
-                </div>
-                <p className="text-[11px] text-neutral-400">
-                  Hanya popup Midtrans Snap (Virtual Account & Kartu).
-                </p>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
           {allCopied && (
             <motion.div 
