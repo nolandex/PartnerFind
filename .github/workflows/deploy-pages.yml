@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        # npm ci gagal di repo ini karena lockfile ketinggalan cobe@2.0.1,
+        # jadi pakai npm install seperti yang sudah terbukti lolos secara lokal.
+        run: npm install --no-audit --no-fund
+
+      - name: Build (base path GitHub Pages)
+        # Base /PartnerFind/ agar aset dan BrowserRouter basename-nya
+        # cocok dengan URL https://nolandex.github.io/PartnerFind/
+        # Hanya vite build (bukan npm run build), karena script build
+        # juga membungkus server.ts yang tidak dibutuhkan di Pages statis.
+        # Pakai binary lokal agar versinya persis vite 6 dari package.json.
+        run: ./node_modules/.bin/vite build --base=/PartnerFind/
+
+      - name: SPA fallback for client-side routes
+        run: cp dist/index.html dist/404.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
