@@ -7,11 +7,8 @@ import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { HeroSearch } from "../components/HeroSearch";
 import { HeroCountdown } from "../components/HeroCountdown";
 import { RotatingGlobe } from "../components/RotatingGlobe";
-import { PaymentSection } from "../components/PaymentSection";
-import { PricingPlan } from "../lib/midtrans";
 import { getLegalModalData } from "../data/legalModalData";
 import { subscribeHeroCounter, getCachedHeroCount, getCachedGroupCount } from "../lib/heroCounterService";
-import { subscribePaymentSettings, getCachedPaymentSettings } from "../lib/paymentSettingsService";
 import { subscribeCtaConfig, getCachedCtaEnabled } from "../lib/ctaService";
 import { subscribeVideoConfig, getCachedVideoConfig, VideoEmbedConfig } from "../lib/videoEmbedService";
 import { getCtaShareConfig } from "../lib/ctaShareConfig";
@@ -79,7 +76,6 @@ export default function Home() {
   const [shareCopied, setShareCopied] = useState(false);
   const [memberCount, setMemberCount] = useState<number>(getCachedHeroCount);
   const [groupCount, setGroupCount] = useState<number>(getCachedGroupCount);
-  const [paymentSettings, setPaymentSettings] = useState(getCachedPaymentSettings);
   const [ctaEnabled, setCtaEnabled] = useState<boolean>(getCachedCtaEnabled);
   const [videoConfig, setVideoConfig] = useState<VideoEmbedConfig>(getCachedVideoConfig);
   const [contentConfig, setContentConfig] = useState<WebsiteContentConfig>(getCachedWebsiteContent);
@@ -133,14 +129,6 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time synchronized payment settings from Firestore
-  useEffect(() => {
-    const unsubscribe = subscribePaymentSettings((config) => {
-      setPaymentSettings(config);
-    });
-    return () => unsubscribe();
-  }, []);
-
   // Real-time synchronized CTA visibility settings from Firestore
   useEffect(() => {
     const unsubscribe = subscribeCtaConfig((config) => {
@@ -171,17 +159,6 @@ export default function Home() {
     });
     return () => unsubscribe();
   }, []);
-
-  const planData: PricingPlan = useMemo(() => ({
-    id: "partnerfind-all-access",
-    name: "PartnerFind All-Access",
-    badge: "LIFETIME",
-    priceMonthly: 4999,
-    priceLifetime: 4999,
-    description: locale.startsWith("id") ? "Sekali bayar • Akses selamanya" : "One-time payment • Lifetime access",
-    features: [],
-    ctaLabel: t("cta_button"),
-  }), [t, locale]);
 
   const legalData = useMemo(() => getLegalModalData(locale), [locale]);
   const navLinks = useMemo(() => [
@@ -381,7 +358,7 @@ export default function Home() {
       <section
         id="features"
         className={`relative overflow-hidden transition-all duration-300 ${
-          !ctaEnabled && !paymentSettings.enabled
+          !ctaEnabled
             ? "pt-14 sm:pt-16 pb-20 sm:pb-28 lg:pb-32"
             : "py-14 sm:py-16"
         }`}
@@ -457,7 +434,7 @@ export default function Home() {
           </Section>
 
           {/* Transisi halus ketika CTA & Pembayaran disembunyikan */}
-          {!ctaEnabled && !paymentSettings.enabled && (
+          {!ctaEnabled && (
             <div className="mt-14 sm:mt-18 flex justify-center">
               <div
                 className="w-36 sm:w-52 h-[1px] opacity-30 rounded-full"
@@ -470,9 +447,6 @@ export default function Home() {
           )}
         </div>
       </section>
-
-      {/* ── INLINE PAYMENT SECTION (Dapat diaktifkan/dinonaktifkan via Admin) ── */}
-      {paymentSettings.enabled && <PaymentSection />}
 
       {/* ── MINIMALIST CTA SECTION (Dapat diaktifkan/dinonaktifkan via Admin) ── */}
       {ctaEnabled && (
@@ -526,7 +500,7 @@ export default function Home() {
       )}
 
       {/* ── ROTATING GLOBE (SEAMLESS CONTINUOUS BACKGROUND) ── */}
-      <section className={`relative z-10 w-full overflow-hidden bg-background ${!ctaEnabled && !paymentSettings.enabled ? "pt-4 sm:pt-6" : ""}`}>
+      <section className={`relative z-10 w-full overflow-hidden bg-background ${!ctaEnabled ? "pt-4 sm:pt-6" : ""}`}>
         <RotatingGlobe />
       </section>
 
