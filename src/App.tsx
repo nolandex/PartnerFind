@@ -16,6 +16,7 @@ import MyCourses from "./pages/MyCourses";
 import Profile from "./pages/Profile";
 import CreateProfile from "./pages/CreateProfile";
 import GlobalNetwork from "./pages/GlobalNetwork";
+import Matching from "./pages/Matching";
 import { GatedLanding } from "./components/GatedLanding";
 
 function ScrollToTop() {
@@ -79,6 +80,8 @@ export default function App() {
               <Route path="/global" element={<GlobalNetwork />} />
               <Route path="/titik-lokasi" element={<GlobalNetwork />} />
               <Route path="/locations" element={<GlobalNetwork />} />
+              <Route path="/pencocokan" element={<Matching />} />
+              <Route path="/matching" element={<Matching />} />
               {/* Catch-all dynamic slug route for custom invite links */}
               <Route path="/:slug" element={<GatedLanding><Index /></GatedLanding>} />
             </Routes>
