@@ -36,3 +36,16 @@
   }
 }
 
+@keyframes btn-flash {
+  0% {
+    transform: translateX(-160%) skewX(-25deg);
+  }
+  30%, 100% {
+    transform: translateX(260%) skewX(-25deg);
+  }
+}
+
+.animate-btn-flash {
+  animation: btn-flash 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+

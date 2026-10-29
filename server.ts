@@ -1,4 +1,8 @@
 import express from "express";
+/**
+ * NOTE: server.ts hanya digunakan untuk LOCAL DEVELOPMENT agar Vite middleware berjalan.
+ * Untuk produksi (Cloudflare, Vercel, dll), aplikasi ini berjalan sebagai PURE SPA (Serverless).
+ */
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";

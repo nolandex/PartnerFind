@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ColorProvider } from "./contexts/ColorContext";
@@ -13,7 +13,6 @@ import Admin from "./pages/Admin";
 import Index from "./pages/Index";
 import CourseDetail from "./pages/CourseDetail";
 import MyCourses from "./pages/MyCourses";
-import Profile from "./pages/Profile";
 import CreateProfile from "./pages/CreateProfile";
 import GlobalNetwork from "./pages/GlobalNetwork";
 import Matching from "./pages/Matching";
@@ -70,9 +69,9 @@ export default function App() {
               <Route path="/buat-profil" element={<CreateProfile />} />
               <Route path="/create-profile" element={<CreateProfile />} />
               <Route path="/partner-profile" element={<CreateProfile />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profil" element={<Profile />} />
-              <Route path="/profiles" element={<Profile />} />
+              <Route path="/profile" element={<Navigate to="/" replace />} />
+              <Route path="/profil" element={<Navigate to="/" replace />} />
+              <Route path="/profiles" element={<Navigate to="/" replace />} />
               <Route path="/partner" element={<GlobalNetwork />} />
               <Route path="/partners" element={<GlobalNetwork />} />
               <Route path="/mitra" element={<GlobalNetwork />} />

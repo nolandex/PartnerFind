@@ -21,7 +21,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("nexclass-locale-v2");
-      if (saved && translations[saved as Locale]) return saved as Locale;
+      if (saved && !saved.startsWith("zh") && translations[saved as Locale]) return saved as Locale;
     } catch {
       // localStorage may be unavailable
     }

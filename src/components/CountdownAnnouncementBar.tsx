@@ -103,7 +103,6 @@ export function CountdownAnnouncementBar() {
   const isFr = lang.startsWith("fr");
   const isJa = lang.startsWith("ja");
   const isDe = lang.startsWith("de");
-  const isZh = lang.startsWith("zh");
   const isRu = lang.startsWith("ru");
   const isAr = lang.startsWith("ar");
   const isKo = lang.startsWith("ko");
@@ -114,13 +113,10 @@ export function CountdownAnnouncementBar() {
   const isStandardMessage = !displayMessage || 
     displayMessage === "Ditutup dalam:" || 
     displayMessage === "Closes in:" || 
-    displayMessage.includes("Pendaftaran") ||
-    displayMessage.includes("pendaftaran") ||
+    displayMessage.toLowerCase().includes("pendaftaran") ||
     displayMessage.includes("Registration") ||
-    displayMessage === "Pendaftaran ditutup dalam:" ||
-    displayMessage === "pendaftaran di tutup dalam" ||
-    displayMessage === "Event dimulai dalam:" ||
-    displayMessage === "Event starts in:";
+    displayMessage.toLowerCase().includes("event") ||
+    (lang.startsWith("id") && !displayMessage.toLowerCase().includes("pra"));
 
   if (isStandardMessage) {
     if (isPt) displayMessage = "Inscrições encerram em:";
@@ -128,12 +124,11 @@ export function CountdownAnnouncementBar() {
     else if (isFr) displayMessage = "Inscriptions closes dans :";
     else if (isJa) displayMessage = "登録締切まで：";
     else if (isDe) displayMessage = "Anmeldung schließt in:";
-    else if (isZh) displayMessage = "报名截止倒计时：";
     else if (isRu) displayMessage = "Регистрация закроется через:";
     else if (isAr) displayMessage = "يغلق التسجيل خلال:";
     else if (isKo) displayMessage = "등록 마감까지:";
-    else if (isEn) displayMessage = "Registration Closes In:";
-    else displayMessage = "pendaftaran di tutup dalam";
+    else if (isEn) displayMessage = "Pre-registration Closes In:";
+    else displayMessage = "Pra Registrasi ditutup dalam";
   }
 
   // Format time labels based on language
@@ -151,8 +146,6 @@ export function CountdownAnnouncementBar() {
     daysLabel = "ي"; hoursLabel = "س"; minsLabel = "د"; secsLabel = "ث";
   } else if (isJa) {
     daysLabel = "日"; hoursLabel = "時"; minsLabel = "分"; secsLabel = "秒";
-  } else if (isZh) {
-    daysLabel = "天"; hoursLabel = "时"; minsLabel = "分"; secsLabel = "秒";
   } else if (isKo) {
     daysLabel = "일"; hoursLabel = "시"; minsLabel = "분"; secsLabel = "초";
   }

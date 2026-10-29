@@ -28,9 +28,9 @@ interface AdminImagePickerProps {
 }
 
 /**
- * Optimasi client-side: kompresi gambar besar agar cepat diunggah
+ * Optimasi client-side: kompresi gambar besar agar ringan (~35KB), cepat dimuat, dan tahan restart server
  */
-async function compressImageFile(file: File, maxWidth = 1600, quality = 0.84): Promise<string> {
+async function compressImageFile(file: File, maxWidth = 960, quality = 0.76): Promise<string> {
   return new Promise((resolve, reject) => {
     // Jika file SVG atau GIF, jangan dikompresi canvas
     if (file.type === "image/svg+xml" || file.type === "image/gif") {
@@ -65,7 +65,7 @@ async function compressImageFile(file: File, maxWidth = 1600, quality = 0.84): P
 
         ctx.drawImage(img, 0, 0, width, height);
         // Prioritaskan WebP atau JPEG
-        const mime = file.type === "image/png" ? "image/png" : "image/jpeg";
+        const mime = file.type === "image/png" ? "image/webp" : "image/jpeg";
         const dataUrl = canvas.toDataURL(mime, quality);
         resolve(dataUrl);
       };
@@ -134,34 +134,14 @@ export const AdminImagePicker: React.FC<AdminImagePickerProps> = ({
     setUploadProgress("Mengoptimasi ukuran gambar...");
 
     try {
-      // 1. Optimasi gambar di client
+      // 1. Optimasi gambar di client menjadi WebP/JPEG ringan (~35KB)
       const optimizedDataUrl = await compressImageFile(file);
-      setUploadProgress("Mengunggah ke server...");
+      setUploadProgress("Menyimpan gambar...");
 
-      // 2. Unggah ke backend server
-      const res = await fetch("/api/upload-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image: optimizedDataUrl,
-          fileName: file.name.replace(/\.[^/.]+$/, ""),
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          onChange(data.url);
-          setSuccessToast("Gambar berhasil diupload!");
-          setTimeout(() => setSuccessToast(""), 3500);
-          return;
-        }
-      }
-
-      // Fallback: jika server upload gagal (misal serverless edge), gunakan dataUrl
-      console.warn("Server upload failed, using optimized data URL fallback");
+      // 2. Simpan langsung sebagai data URL yang permanen di Firestore
+      // Ini membuat aplikasi 'Serverless' karena tidak butuh backend untuk simpan file.
       onChange(optimizedDataUrl);
-      setSuccessToast("Gambar berhasil diunggah (Data URL tersimpan)!");
+      setSuccessToast("Gambar berhasil disimpan secara permanen!");
       setTimeout(() => setSuccessToast(""), 3500);
     } catch (err: any) {
       console.error("Gagal memproses gambar:", err);

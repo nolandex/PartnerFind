@@ -29,8 +29,6 @@ export default function GlobalNetwork() {
         return "Werden Sie Einladungs-Partner und Bauen Sie ein Globales Netzwerk auf";
       case "ja-JP":
         return "招待パートナーに参加して、私たちと共にグローバルネットワークを構築しましょう";
-      case "zh-CN":
-        return "成为邀请合作伙伴，与我们一起构建全球协作网络";
       case "ko-KR":
         return "초대 파트너로 참여하여 글로벌 협업 네트워크를 함께 구축하세요";
       case "ru-RU":
@@ -133,23 +131,6 @@ export default function GlobalNetwork() {
           step2Desc: "専用の招待リンクを地域のクリエイター、代理店、ビジネスオーナーに共有し、グローバルコミュニティに接続します。",
           step3Title: "収益を獲得＆ネットワークを拡大",
           step3Desc: "自動収益シェアを受け取り、アクティブなコラボレーション拠点の成長をリアルタイムかつ透明に確認できます。",
-        };
-      case "zh-CN":
-        return {
-          back: "返回",
-          home: "首页",
-          pageTitle: "全球合作伙伴",
-          statCountries: "覆盖国家与地区",
-          statTarget: "目标合作伙伴",
-          statPartners: "已加入合作伙伴",
-          stepsHeading: "如何成为合作伙伴",
-          close: "关闭",
-          step1Title: "注册您的位置节点",
-          step1Desc: "完善您的合作资料，选择所在的城市与国家，即可获得官方网络认证标识与专属邀请链接。",
-          step2Title: "分享专属邀请链接",
-          step2Desc: "将您的专属邀请链接分享给本地区的创作者、机构及企业伙伴，助其快速接入全球协作生态。",
-          step3Title: "获取收益分成并拓展网络",
-          step3Desc: "享受自动化收益分成，实时透明追踪名下所有活跃合作节点与业务的持续增长。",
         };
       case "ko-KR":
         return {
@@ -486,16 +467,22 @@ export default function GlobalNetwork() {
               {texts.home}
             </Link>
             <button
-              onClick={() => setActiveModal('privacy')}
+              onClick={() => setActiveModal('about')}
               className="text-foreground/75 hover:text-foreground transition-colors cursor-pointer text-xs font-medium"
             >
-              {t("footer_privacy")}
+              {locale === 'id-ID' ? 'About' : t("footer_company_about")}
             </button>
             <button
               onClick={() => setActiveModal('terms')}
               className="text-foreground/75 hover:text-foreground transition-colors cursor-pointer text-xs font-medium"
             >
-              {t("footer_terms")}
+              {locale === 'id-ID' ? 'S&K' : t("footer_terms")}
+            </button>
+            <button
+              onClick={() => setActiveModal('privacy')}
+              className="text-foreground/75 hover:text-foreground transition-colors cursor-pointer text-xs font-medium"
+            >
+              {locale === 'id-ID' ? 'Kebijakan Privasi' : t("footer_privacy")}
             </button>
           </div>
         </div>
@@ -526,9 +513,9 @@ export default function GlobalNetwork() {
                   {activeModal === 'privacy' && <ShieldCheck className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
                   {activeModal === 'terms' && <FileText className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
                   <h3 className="font-bold text-lg text-foreground">
-                    {activeModal === 'about' && t("footer_company_about")}
-                    {activeModal === 'privacy' && t("footer_privacy")}
-                    {activeModal === 'terms' && t("footer_terms")}
+                    {activeModal === 'about' && (locale === 'id-ID' ? 'About PartnerFind' : t("footer_company_about"))}
+                    {activeModal === 'privacy' && (locale === 'id-ID' ? 'Kebijakan Privasi' : t("footer_privacy"))}
+                    {activeModal === 'terms' && (locale === 'id-ID' ? 'Syarat & Ketentuan (S&K)' : t("footer_terms"))}
                   </h3>
                 </div>
                 <button

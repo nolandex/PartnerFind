@@ -122,7 +122,9 @@ export async function getHeroCounterConfig(): Promise<HeroCounterConfig> {
 }
 
 /**
- * Save rule configuration (min, max, intervalValue, intervalUnit) and optionally base currentCount permanently to Firestore.
+ * Save rule configuration (min, max, intervalValue, intervalUnit) permanently to Firestore.
+ * NOTE: This explicitly does NOT overwrite currentCount or groupCount unless overrideCount is explicitly true,
+ * preventing live ticking counts from ever being reverted by saving progression rules.
  */
 export async function saveHeroRulesConfig(
   rules: {
@@ -132,6 +134,7 @@ export async function saveHeroRulesConfig(
     intervalUnit: 'seconds' | 'minutes';
     intervalMinutes?: number;
     currentCount?: number;
+    overrideCount?: boolean;
   }
 ): Promise<boolean> {
   try {
@@ -150,7 +153,8 @@ export async function saveHeroRulesConfig(
       intervalMinutes: intervalMins,
     };
 
-    if (typeof rules.currentCount === "number" && !isNaN(rules.currentCount) && rules.currentCount >= 0) {
+    // Only update currentCount if explicitly requested (e.g. manual override)
+    if (rules.overrideCount === true && typeof rules.currentCount === "number" && !isNaN(rules.currentCount) && rules.currentCount >= 0) {
       const safeCount = Math.round(rules.currentCount);
       payload.currentCount = safeCount;
       payload.lastUpdated = Date.now();
@@ -203,7 +207,9 @@ export async function overrideHeroCount(newCount: number): Promise<boolean> {
 }
 
 /**
- * Save group rule configuration (min, max, intervalValue, intervalUnit) and optionally base groupCount permanently to Firestore.
+ * Save group rule configuration (min, max, intervalValue, intervalUnit) permanently to Firestore.
+ * NOTE: This explicitly does NOT overwrite groupCount unless overrideCount is explicitly true,
+ * preventing live ticking group counts from ever being reverted by saving progression rules.
  */
 export async function saveGroupRulesConfig(
   rules: {
@@ -213,6 +219,7 @@ export async function saveGroupRulesConfig(
     groupIntervalUnit: 'seconds' | 'minutes';
     groupIntervalMinutes?: number;
     groupCount?: number;
+    overrideCount?: boolean;
   }
 ): Promise<boolean> {
   try {
@@ -231,7 +238,8 @@ export async function saveGroupRulesConfig(
       groupIntervalMinutes: intervalMins,
     };
 
-    if (typeof rules.groupCount === "number" && !isNaN(rules.groupCount) && rules.groupCount >= 0) {
+    // Only update groupCount if explicitly requested (e.g. manual override)
+    if (rules.overrideCount === true && typeof rules.groupCount === "number" && !isNaN(rules.groupCount) && rules.groupCount >= 0) {
       const safeGroupCount = Math.round(rules.groupCount);
       payload.groupCount = safeGroupCount;
       payload.groupLastUpdated = Date.now();
@@ -316,7 +324,16 @@ export async function checkAndAdvanceCounter(): Promise<void> {
     await runTransaction(db, async (transaction) => {
       const snap = await transaction.get(docRef);
       if (!snap.exists()) {
-        transaction.set(docRef, DEFAULT_HERO_COUNTER);
+        const cachedMember = getCachedHeroCount();
+        const cachedGroup = getCachedGroupCount();
+        const initialConfig: HeroCounterConfig = {
+          ...DEFAULT_HERO_COUNTER,
+          currentCount: Math.max(DEFAULT_HERO_COUNTER.currentCount, cachedMember),
+          groupCount: Math.max(DEFAULT_HERO_COUNTER.groupCount, cachedGroup),
+          lastUpdated: Date.now(),
+          groupLastUpdated: Date.now(),
+        };
+        transaction.set(docRef, initialConfig);
         return;
       }
 
@@ -330,7 +347,14 @@ export async function checkAndAdvanceCounter(): Promise<void> {
       const memberLastUpdated = hasStoredMemberLastUpdated ? data.lastUpdated! : now;
       const memberElapsedMs = Math.max(0, now - memberLastUpdated);
 
-      let newMemberCount = hasStoredMemberCount ? data.currentCount! : DEFAULT_HERO_COUNTER.currentCount;
+      // Monotonic guard: base count cannot be lower than existing or cached
+      const baseMemberCount = Math.max(
+        hasStoredMemberCount ? data.currentCount! : 0,
+        getCachedHeroCount(),
+        DEFAULT_HERO_COUNTER.currentCount
+      );
+
+      let newMemberCount = baseMemberCount;
       let newMemberLastUpdated = memberLastUpdated;
       let memberUpdated = !hasStoredMemberCount || !hasStoredMemberLastUpdated;
 
@@ -344,7 +368,7 @@ export async function checkAndAdvanceCounter(): Promise<void> {
           for (let i = 0; i < iterations; i++) {
             totalAdded += Math.floor(Math.random() * (maxInc - minInc + 1)) + minInc;
           }
-          newMemberCount += totalAdded;
+          newMemberCount = baseMemberCount + totalAdded;
           newMemberLastUpdated = memberLastUpdated + (memberIntervalsPassed * memberIntervalMs);
           memberUpdated = true;
         }
@@ -355,13 +379,19 @@ export async function checkAndAdvanceCounter(): Promise<void> {
       const hasStoredGroupLastUpdated = typeof data.groupLastUpdated === "number";
       const hasStoredGroupCount = typeof data.groupCount === "number";
       
-      // If groupLastUpdated is missing in Firestore, anchor it to data.lastUpdated or (now - groupIntervalMs) so it immediately ticks!
       const groupLastUpdated = hasStoredGroupLastUpdated
         ? data.groupLastUpdated!
         : (data.lastUpdated ? data.lastUpdated : now - groupIntervalMs);
       const groupElapsedMs = Math.max(0, now - groupLastUpdated);
 
-      let newGroupCount = hasStoredGroupCount ? data.groupCount! : DEFAULT_HERO_COUNTER.groupCount;
+      // Monotonic guard: base group count cannot be lower than existing or cached
+      const baseGroupCount = Math.max(
+        hasStoredGroupCount ? data.groupCount! : 0,
+        getCachedGroupCount(),
+        DEFAULT_HERO_COUNTER.groupCount
+      );
+
+      let newGroupCount = baseGroupCount;
       let newGroupLastUpdated = groupLastUpdated;
       let groupUpdated = !hasStoredGroupCount || !hasStoredGroupLastUpdated;
 
@@ -375,13 +405,17 @@ export async function checkAndAdvanceCounter(): Promise<void> {
           for (let i = 0; i < gIterations; i++) {
             gTotalAdded += Math.floor(Math.random() * (gMaxInc - gMinInc + 1)) + gMinInc;
           }
-          newGroupCount += gTotalAdded;
+          newGroupCount = baseGroupCount + gTotalAdded;
           newGroupLastUpdated = groupLastUpdated + (groupIntervalsPassed * groupIntervalMs);
           groupUpdated = true;
         }
       } else if (!hasStoredGroupLastUpdated) {
         newGroupLastUpdated = now;
       }
+
+      // Final monotonic assertion: counts must never decrease
+      newMemberCount = Math.max(newMemberCount, baseMemberCount);
+      newGroupCount = Math.max(newGroupCount, baseGroupCount);
 
       // Commit changes atomically if any counter progressed
       if (memberUpdated || groupUpdated) {
@@ -490,8 +524,23 @@ export function subscribeHeroCounter(
     (snap) => {
       if (snap.exists()) {
         const data = snap.data() as Partial<HeroCounterConfig>;
+        const cachedMember = getCachedHeroCount();
+        const cachedGroup = getCachedGroupCount();
+
+        // Monotonic protection: ensure count never retrogrades below cached values
+        const safeCurrentCount = Math.max(
+          typeof data.currentCount === "number" ? data.currentCount : 0,
+          cachedMember,
+          DEFAULT_HERO_COUNTER.currentCount
+        );
+        const safeGroupCount = Math.max(
+          typeof data.groupCount === "number" ? data.groupCount : 0,
+          cachedGroup,
+          DEFAULT_HERO_COUNTER.groupCount
+        );
+
         const config: HeroCounterConfig = {
-          currentCount: typeof data.currentCount === "number" ? data.currentCount : 1000000,
+          currentCount: safeCurrentCount,
           minIncrement: typeof data.minIncrement === "number" ? data.minIncrement : 1,
           maxIncrement: typeof data.maxIncrement === "number" ? data.maxIncrement : 3,
           intervalValue: typeof data.intervalValue === "number" ? data.intervalValue : (data.intervalMinutes || 1),
@@ -499,14 +548,13 @@ export function subscribeHeroCounter(
           intervalMinutes: typeof data.intervalMinutes === "number" ? data.intervalMinutes : 1,
           lastUpdated: typeof data.lastUpdated === "number" ? data.lastUpdated : Date.now(),
 
-          groupCount: typeof data.groupCount === "number" ? data.groupCount : 342180,
+          groupCount: safeGroupCount,
           groupMinIncrement: typeof data.groupMinIncrement === "number" ? data.groupMinIncrement : 1,
           groupMaxIncrement: typeof data.groupMaxIncrement === "number" ? data.groupMaxIncrement : 2,
           groupIntervalValue: typeof data.groupIntervalValue === "number" ? data.groupIntervalValue : (data.groupIntervalMinutes || 2),
           groupIntervalUnit: data.groupIntervalUnit || (data.groupIntervalMinutes && data.groupIntervalMinutes < 1 ? 'seconds' : 'minutes'),
           groupIntervalMinutes: typeof data.groupIntervalMinutes === "number" ? data.groupIntervalMinutes : 2,
           groupLastUpdated: typeof data.groupLastUpdated === "number" ? data.groupLastUpdated : Date.now(),
-
         };
 
         latestConfigCache = config;
@@ -519,11 +567,20 @@ export function subscribeHeroCounter(
         callback(config);
         checkAndAdvanceCounter();
       } else {
-        setDoc(docRef, DEFAULT_HERO_COUNTER, { merge: true }).catch((e) =>
+        const cachedMember = getCachedHeroCount();
+        const cachedGroup = getCachedGroupCount();
+        const initialConfig: HeroCounterConfig = {
+          ...DEFAULT_HERO_COUNTER,
+          currentCount: Math.max(DEFAULT_HERO_COUNTER.currentCount, cachedMember),
+          groupCount: Math.max(DEFAULT_HERO_COUNTER.groupCount, cachedGroup),
+          lastUpdated: Date.now(),
+          groupLastUpdated: Date.now(),
+        };
+        setDoc(docRef, initialConfig, { merge: true }).catch((e) =>
           console.warn("Failed to initialize default hero counter in Firestore:", e)
         );
-        latestConfigCache = DEFAULT_HERO_COUNTER;
-        callback(DEFAULT_HERO_COUNTER);
+        latestConfigCache = initialConfig;
+        callback(initialConfig);
       }
     },
     (err) => {

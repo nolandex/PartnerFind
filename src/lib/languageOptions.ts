@@ -14,7 +14,6 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
   { locale: "ja-JP", name: "日本語", flag: "🇯🇵", short: "JA" },
   { locale: "fr-FR", name: "Français", flag: "🇫🇷", short: "FR" },
   { locale: "de-DE", name: "Deutsch", flag: "🇩🇪", short: "DE" },
-  { locale: "zh-CN", name: "中文", flag: "🇨🇳", short: "ZH" },
   { locale: "ru-RU", name: "Русский", flag: "🇷🇺", short: "RU" },
   { locale: "ar-SA", name: "العربية", flag: "🇸🇦", short: "AR" },
   { locale: "ko-KR", name: "한국어", flag: "🇰🇷", short: "KO" },

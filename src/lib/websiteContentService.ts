@@ -42,6 +42,9 @@ export interface WebsiteContentConfig {
   // Multilingual custom texts per locale: texts['en-US'] = { heroHeadline: '...', ... }
   texts?: Record<string, Record<string, string>>;
 
+  // Custom Tally Embed URL per locale
+  tallyEmbedUrls?: Record<string, string>;
+
   // Metadata
   updatedAt?: number;
   updatedBy?: string;
@@ -71,6 +74,46 @@ export function getLocalizedText(
   return defaultTranslationValue;
 }
 
+/**
+ * Teks tombol CTA aksi utama default sesuai bahasa
+ */
+export function getDefaultCtaButtonText(locale: string): string {
+  const map: Record<string, string> = {
+    "id-ID": "Daftar Pra-Registrasi Sekarang",
+    "en-US": "Join Pre-Registration Now",
+    "es-ES": "Unirse al Pre-Registro Ahora",
+    "fr-FR": "Rejoindre la Pré-Inscription",
+    "de-DE": "Jetzt zur Voranmeldung",
+    "ja-JP": "今すぐ事前登録に参加する",
+    "ru-RU": "Принять участие в предрегистрации",
+    "ar-SA": "انضم إلى التسجيل المسبق الآن",
+    "tr-TR": "Şimdi Ön Kayda Katılın",
+    "ko-KR": "지금 사전 등록 참여하기",
+    "pt-PT": "Entrar no Pré-Registro Agora",
+  };
+  return map[locale] || map["id-ID"] || "Daftar Pra-Registrasi Sekarang";
+}
+
+/**
+ * Micro-copy penegas & pendorong klik di bawah tombol CTA
+ */
+export function getDefaultCtaMicroCopy(locale: string): string {
+  const map: Record<string, string> = {
+    "id-ID": "100% Bebas Biaya • Kuota Terbatas • Akses Global",
+    "en-US": "100% Free • Limited Spots • Global Access",
+    "es-ES": "100% Gratis • Plazas Limitadas • Acceso Global",
+    "fr-FR": "100% Gratuit • Places Limitées • Accès Global",
+    "de-DE": "100% Kostenlos • Begrenzte Plätze • Globaler Zugang",
+    "ja-JP": "完全無料 • 枠数限定 • グローバルアクセス",
+    "ru-RU": "100% Бесплатно • Ограниченные места • Глобальный доступ",
+    "ar-SA": "مجاني 100% • مقاعد محدودة • وصول عالمي",
+    "tr-TR": "%100 Ücretsiz • Sınırlı Kontenjan • Küresel Erişim",
+    "ko-KR": "100% 무료 • 한정 수량 • 글로벌 액세스",
+    "pt-PT": "100% Grátis • Vagas Limitadas • Acesso Global",
+  };
+  return map[locale] || map["id-ID"] || "100% Bebas Biaya • Kuota Terbatas • Akses Global";
+}
+
 export const PRESET_IMAGES = [
   { label: "Pencarian Kreator (Default Langkah 1)", url: featImg1 },
   { label: "Koneksi Langsung (Default Langkah 2)", url: featImg2 },
@@ -94,7 +137,7 @@ export const DEFAULT_WEBSITE_CONTENT: WebsiteContentConfig = {
   heroHeadline: "", // Kosong berarti menggunakan translasi otomatis sesuai bahasa pengguna ({count} & {groups})
   heroSubheadline: "",
   searchPlaceholder: "Temukan kolaborasi...",
-  countdownTitle: "", // Kosong berarti menggunakan translasi otomatis "pendaftaran di tutup dalam"
+  countdownTitle: "", // Kosong berarti menggunakan translasi otomatis "Pra Registrasi ditutup dalam"
 
   // Teks Fitur
   featuresLabel: "",
@@ -144,6 +187,43 @@ export function extractYoutubeId(input: string): string {
 }
 
 /**
+ * Sanitasi konfigurasi konten website agar tidak pernah ada gambar rusak atau link 404
+ */
+export function sanitizeContentConfig(raw: Partial<WebsiteContentConfig>): WebsiteContentConfig {
+  const merged: WebsiteContentConfig = {
+    ...DEFAULT_WEBSITE_CONTENT,
+    ...raw,
+  };
+
+  const isInvalidOrBroken = (url?: string) => {
+    if (!url || typeof url !== "string") return true;
+    const trimmed = url.trim();
+    if (trimmed === "") return true;
+    // Deteksi foto stock template lama Unsplash yang tidak sesuai
+    if (trimmed.includes("photo-1517248135467-4c7edcad34c4")) return true;
+    if (trimmed.includes("photo-1513104890138-7c749659a591")) return true;
+    // Deteksi link upload lokal sementara yang tidak ada lagi di filesystem
+    if (trimmed.startsWith("/uploads/1000822289_1793193739965")) return true;
+    return false;
+  };
+
+  if (isInvalidOrBroken(merged.feature1Image)) {
+    merged.feature1Image = DEFAULT_WEBSITE_CONTENT.feature1Image;
+  }
+  if (isInvalidOrBroken(merged.feature2Image)) {
+    merged.feature2Image = DEFAULT_WEBSITE_CONTENT.feature2Image;
+  }
+  if (isInvalidOrBroken(merged.feature3Image)) {
+    merged.feature3Image = DEFAULT_WEBSITE_CONTENT.feature3Image;
+  }
+  if (merged.ctaBannerImage && (merged.ctaBannerImage.startsWith("/uploads/1000816816_1792130055019") || merged.ctaBannerImage.trim() === "")) {
+    merged.ctaBannerImage = "";
+  }
+
+  return merged;
+}
+
+/**
  * Ambil konten website yang tersimpan di localStorage untuk zero-flicker rendering
  */
 export function getCachedWebsiteContent(): WebsiteContentConfig {
@@ -151,10 +231,7 @@ export function getCachedWebsiteContent(): WebsiteContentConfig {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      return {
-        ...DEFAULT_WEBSITE_CONTENT,
-        ...parsed,
-      };
+      return sanitizeContentConfig(parsed);
     }
   } catch {
     // Abaikan error parse
@@ -170,12 +247,12 @@ export async function saveWebsiteContent(
   userEmail = "admin"
 ): Promise<boolean> {
   const current = getCachedWebsiteContent();
-  const payload: WebsiteContentConfig = {
+  const payload: WebsiteContentConfig = sanitizeContentConfig({
     ...current,
     ...updates,
     updatedAt: Date.now(),
     updatedBy: userEmail,
-  };
+  });
 
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
@@ -214,14 +291,11 @@ export function subscribeWebsiteContent(
     (snap) => {
       if (snap.exists()) {
         const data = snap.data() as WebsiteContentConfig;
-        const merged: WebsiteContentConfig = {
-          ...DEFAULT_WEBSITE_CONTENT,
-          ...data,
-        };
+        const sanitized = sanitizeContentConfig(data);
         try {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
         } catch {}
-        callback(merged);
+        callback(sanitized);
       } else {
         callback(DEFAULT_WEBSITE_CONTENT);
       }

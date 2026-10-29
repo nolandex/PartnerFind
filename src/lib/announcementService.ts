@@ -27,8 +27,8 @@ export const DEFAULT_TARGET_DATE = "2026-10-01T00:00:00.000Z";
 export const DEFAULT_ANNOUNCEMENT: AnnouncementBarConfig = {
   enabled: true,
   badgeText: "",
-  message: "pendaftaran di tutup dalam",
-  messageEn: "Registration Closes In",
+  message: "Pra Registrasi ditutup dalam",
+  messageEn: "Pre-registration Closes In",
   targetDate: DEFAULT_TARGET_DATE,
   buttonText: "",
   buttonTextEn: "",

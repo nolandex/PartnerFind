@@ -39,6 +39,45 @@
         "createdBy": { "type": "string" }
       },
       "required": ["code"]
+    },
+    "PartnershipSubmission": {
+      "title": "PartnershipSubmission",
+      "description": "Member registration submission for opportunity seeker or provider",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["pencari_peluang", "pemberi_peluang"] },
+        "name": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "email": { "type": "string" },
+        "industry": { "type": "string" },
+        "skills": { "type": "string" },
+        "needs": { "type": "string" },
+        "capitalRange": { "type": "string" },
+        "location": { "type": "string" },
+        "workPreference": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" }
+      },
+      "required": ["type", "name", "whatsapp", "industry"]
+    },
+    "MatchResult": {
+      "title": "MatchResult",
+      "description": "Calculated match result between opportunity seeker and provider",
+      "type": "object",
+      "properties": {
+        "seekerId": { "type": "string" },
+        "providerId": { "type": "string" },
+        "seekerName": { "type": "string" },
+        "providerName": { "type": "string" },
+        "seekerWhatsapp": { "type": "string" },
+        "providerWhatsapp": { "type": "string" },
+        "industry": { "type": "string" },
+        "matchScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["seekerId", "providerId", "matchScore", "status"]
     }
   },
   "firestore": {
@@ -110,6 +149,18 @@
         }
       },
       "description": "Global application configuration, website content (video, images, texts), and synchronized live hero counter"
+    },
+    "partnership_submissions/{submissionId}": {
+      "schema": {
+        "$ref": "#/entities/PartnershipSubmission"
+      },
+      "description": "Stores submitted partnership forms from opportunity seekers and providers"
+    },
+    "match_results/{matchId}": {
+      "schema": {
+        "$ref": "#/entities/MatchResult"
+      },
+      "description": "Stores calculated and approved matching results between seekers and providers"
     }
   }
 }

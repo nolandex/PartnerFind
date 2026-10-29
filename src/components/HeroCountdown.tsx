@@ -51,7 +51,7 @@ const UNIT_LABELS: Record<
     hours: "JAM",
     mins: "MENIT",
     secs: "DETIK",
-    title: "pendaftaran di tutup dalam",
+    title: "Pra Registrasi ditutup dalam",
   },
   "en-US": {
     days: "DAYS",
@@ -87,13 +87,6 @@ const UNIT_LABELS: Record<
     mins: "MIN",
     secs: "SEK",
     title: "Anmeldung schließt in",
-  },
-  "zh-CN": {
-    days: "天",
-    hours: "时",
-    mins: "分",
-    secs: "秒",
-    title: "报名截止倒计时",
   },
   "ru-RU": {
     days: "ДНЕЙ",
@@ -196,23 +189,21 @@ export const HeroCountdown: React.FC<HeroCountdownProps> = memo(({ triggerPulse 
 
   const currentStrings = UNIT_LABELS[locale] || UNIT_LABELS["id-ID"];
   const isEn = locale?.startsWith("en");
+  const isId = !locale || locale.startsWith("id");
 
   // Determine display message: priority to custom countdownTitle from Admin
   let displayMessage = getLocalizedText(contentConfig, locale, 'countdownTitle', '') || ((isEn && config.messageEn) ? config.messageEn : config.message);
-  if (
+  
+  const isLegacy =
     !displayMessage ||
-    displayMessage === "Pendaftaran ditutup dalam:" ||
-    displayMessage === "Pendaftaran ditutup dalam" ||
-    displayMessage === "Pendaftaran di tutup dalam" ||
-    displayMessage === "pendaftaran di tutup dalam" ||
+    displayMessage.toLowerCase().includes("pendaftaran") ||
+    displayMessage.toLowerCase().includes("event") ||
+    displayMessage === "Ditutup dalam:" ||
     displayMessage === "Registration closes in:" ||
     displayMessage === "Registration Closes In" ||
-    displayMessage === "Ditutup dalam:" ||
-    displayMessage === "Event dimulai dalam:" ||
-    displayMessage === "Event dimulai dalam" ||
-    displayMessage === "Event starts in:" ||
-    displayMessage === "Event Starts In"
-  ) {
+    (isId && !displayMessage.toLowerCase().includes("pra"));
+
+  if (isLegacy) {
     displayMessage = currentStrings.title;
   }
 

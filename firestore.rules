@@ -45,6 +45,19 @@ service cloud.firestore {
       allow create, update: if isValidId(settingId);
       allow delete: if false;
     }
+
+    match /partnership_submissions/{submissionId} {
+      // Submissions from opportunity seekers and providers
+      allow get, list: if true;
+      allow create: if isValidId(submissionId);
+      allow update, delete: if isValidId(submissionId);
+    }
+
+    match /match_results/{matchId} {
+      // Automatic and manual matching results
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(matchId);
+    }
   }
 }
 

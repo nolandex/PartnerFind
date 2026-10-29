@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { motion, AnimatePresence, useInView } from "motion/react";
-import { ArrowRight, X, MapPin, Mail, Phone, ExternalLink, Users, Globe2, Share2, Check, Copy } from "lucide-react";
+import { ArrowRight, X, MapPin, Mail, Phone, ExternalLink, Users, Globe2, Share2, Check, Copy, Sparkles, ShieldCheck, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
-import { HeroSearch } from "../components/HeroSearch";
 import { HeroCountdown } from "../components/HeroCountdown";
 import { RotatingGlobe } from "../components/RotatingGlobe";
+import { PartnershipFormModal } from "../components/PartnershipFormModal";
 import { getLegalModalData } from "../data/legalModalData";
 import { subscribeHeroCounter, getCachedHeroCount, getCachedGroupCount } from "../lib/heroCounterService";
 import { subscribeCtaConfig, getCachedCtaEnabled } from "../lib/ctaService";
@@ -72,14 +72,14 @@ const formatNumberByLocale = (num: number, loc: string): string => {
 export default function Home() {
   const { t, locale, setLocale } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
-  const [activeModal, setActiveModal] = useState<null | 'about' | 'contact' | 'share'>(null);
+  const [activeModal, setActiveModal] = useState<null | 'about' | 'contact' | 'share' | 'terms' | 'privacy'>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [isPartnershipModalOpen, setIsPartnershipModalOpen] = useState(false);
   const [memberCount, setMemberCount] = useState<number>(getCachedHeroCount);
   const [groupCount, setGroupCount] = useState<number>(getCachedGroupCount);
   const [ctaEnabled, setCtaEnabled] = useState<boolean>(getCachedCtaEnabled);
   const [videoConfig, setVideoConfig] = useState<VideoEmbedConfig>(getCachedVideoConfig);
   const [contentConfig, setContentConfig] = useState<WebsiteContentConfig>(getCachedWebsiteContent);
-  const [countdownPulse, setCountdownPulse] = useState(0);
 
   const shareConfig = useMemo(() => getCtaShareConfig(locale), [locale]);
 
@@ -175,23 +175,46 @@ export default function Home() {
     return headline.split(/(\{count\}|\{groups\})/g);
   }, [headline]);
 
+  const ctaButtonLabel = useMemo(() => {
+    if (contentConfig.ctaButtonText && contentConfig.ctaButtonText.trim()) {
+      return contentConfig.ctaButtonText;
+    }
+    const map: Record<string, string> = {
+      "id-ID": "Daftar PartnerFind",
+      "en-US": "Register PartnerFind",
+      "es-ES": "Registrarse en PartnerFind",
+      "fr-FR": "S'inscrire à PartnerFind",
+      "de-DE": "PartnerFind Registrieren",
+      "ja-JP": "PartnerFindに登録する",
+      "ru-RU": "Регистрация в PartnerFind",
+      "ar-SA": "تسجيل في PartnerFind",
+      "tr-TR": "PartnerFind'a Kaydolun",
+      "ko-KR": "PartnerFind 등록하기",
+      "pt-PT": "Registrar no PartnerFind",
+    };
+    return map[locale] || "Daftar PartnerFind";
+  }, [contentConfig.ctaButtonText, locale]);
+
   const FEATURES = useMemo(() => [
     {
       title: getLocalizedText(contentConfig, locale, 'feature1Title', t("feature_1_title")),
       desc: getLocalizedText(contentConfig, locale, 'feature1Desc', t("feature_1_desc")),
       image: contentConfig.feature1Image || featImg1,
+      fallback: featImg1,
       alt: getLocalizedText(contentConfig, locale, 'feature1Title', "Mulai Bersama"),
     },
     {
       title: getLocalizedText(contentConfig, locale, 'feature2Title', t("feature_2_title")),
       desc: getLocalizedText(contentConfig, locale, 'feature2Desc', t("feature_2_desc")),
       image: contentConfig.feature2Image || featImg2,
+      fallback: featImg2,
       alt: getLocalizedText(contentConfig, locale, 'feature2Title', "Temukan & Gabung Peluang"),
     },
     {
       title: getLocalizedText(contentConfig, locale, 'feature3Title', t("feature_3_title")),
       desc: getLocalizedText(contentConfig, locale, 'feature3Desc', t("feature_3_desc")),
       image: contentConfig.feature3Image || featImg3,
+      fallback: featImg3,
       alt: getLocalizedText(contentConfig, locale, 'feature3Title', "Belajar dan Berkembang"),
     },
   ], [t, locale, contentConfig]);
@@ -341,14 +364,49 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Search Input Bar (Focused directly under the main video selling point) */}
-            <motion.div variants={fadeUp} className="w-full max-w-3xl mx-auto">
-              <HeroSearch onSearchClick={() => setCountdownPulse((prev) => prev + 1)} />
+
+            {/* ── TOMBOL DAFTAR HERO (LEBIH PANJANG DENGAN ROUNDED-FULL & MAGNETIK) ── */}
+            <motion.div variants={fadeUp} className="w-full max-w-sm mx-auto mb-6 sm:mb-8 px-4 sm:px-0">
+              <div className="relative group w-full">
+                {/* Subtle Refined Halo Glow */}
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-0.5 rounded-full blur-sm opacity-30 group-hover:opacity-45 transition-opacity duration-300 pointer-events-none"
+                  style={{
+                    background: "hsl(var(--brand-accent))",
+                  }}
+                />
+
+                {/* Primary Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsPartnershipModalOpen(true)}
+                  className="relative w-full h-12 px-6 rounded-full font-black text-sm sm:text-base text-neutral-950 transition-all duration-300 cursor-pointer overflow-hidden shadow-[0_2px_10px_hsl(var(--brand-accent)/0.25)] hover:shadow-[0_4px_16px_hsl(var(--brand-accent)/0.35)] hover:scale-[1.02] active:scale-[0.98] border border-white/20 flex items-center justify-center gap-2.5"
+                  style={{ background: "hsl(var(--brand-accent))" }}
+                >
+                  {/* Top specular reflection */}
+                  <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
+
+                  {/* Kilatan cahaya menyapu berkala (Periodic Light Flash) */}
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none animate-btn-flash" />
+
+                  {/* Kilatan cahaya ekstra saat kursor mengarah (Hover Flash) */}
+                  <div className="absolute -inset-full w-[200%] h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none" />
+
+                  {/* Button text */}
+                  <span className="relative z-10 font-black tracking-tight whitespace-nowrap">
+                    {ctaButtonLabel}
+                  </span>
+
+                  {/* Arrow icon with hover forward slide */}
+                  <ArrowRight className="w-4 h-4 shrink-0 relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+                </button>
+              </div>
             </motion.div>
 
-            {/* Countdown Timer Display (Large & prominent directly under search) */}
+            {/* Countdown Timer Display (Large & prominent under video/headline) */}
             <motion.div variants={fadeUp} className="w-full max-w-3xl mx-auto">
-              <HeroCountdown triggerPulse={countdownPulse} />
+              <HeroCountdown />
             </motion.div>
           </motion.div>
         </div>
@@ -416,6 +474,11 @@ export default function Home() {
                       alt={item.title}
                       loading="lazy"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        if (item.fallback && e.currentTarget.src !== item.fallback) {
+                          e.currentTarget.src = item.fallback;
+                        }
+                      }}
                       className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
@@ -433,7 +496,7 @@ export default function Home() {
             ))}
           </Section>
 
-          {/* Transisi halus ketika CTA & Pembayaran disembunyikan */}
+          {/* Transisi halus ketika CTA disembunyikan */}
           {!ctaEnabled && (
             <div className="mt-14 sm:mt-18 flex justify-center">
               <div
@@ -473,26 +536,43 @@ export default function Home() {
                 variants={fadeUp}
                 className="flex items-center justify-center"
               >
-                <button
-                  type="button"
-                  onClick={handleCtaShare}
-                  className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-full font-bold text-base sm:text-lg text-white transition-all duration-200 shadow-xl shadow-black/40 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                  style={{
-                    background: "hsl(var(--brand-accent))",
-                  }}
-                >
-                  {shareCopied ? (
-                    <>
-                      <Check className="w-5 h-5 shrink-0" />
-                      <span>{shareConfig.copiedToast}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="w-5 h-5 shrink-0" />
-                      <span>{getLocalizedText(contentConfig, locale, 'ctaButtonText', shareConfig.label)}</span>
-                    </>
-                  )}
-                </button>
+                <div className="relative group inline-flex items-center justify-center">
+                  {/* Subtle Refined Halo Glow */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute -inset-0.5 rounded-full blur-sm opacity-30 group-hover:opacity-45 transition-opacity duration-300 pointer-events-none"
+                    style={{
+                      background: "hsl(var(--brand-accent))",
+                    }}
+                  />
+
+                  {/* Primary Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsPartnershipModalOpen(true)}
+                    className="relative inline-flex items-center justify-center gap-2.5 px-8 sm:px-9 h-12 rounded-full font-black text-sm sm:text-base text-neutral-950 transition-all duration-300 cursor-pointer overflow-hidden shadow-[0_2px_10px_hsl(var(--brand-accent)/0.25)] hover:shadow-[0_4px_16px_hsl(var(--brand-accent)/0.35)] hover:scale-[1.03] active:scale-[0.97] border border-white/20"
+                    style={{
+                      background: "hsl(var(--brand-accent))",
+                    }}
+                  >
+                    {/* Top specular reflection */}
+                    <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
+
+                    {/* Kilatan cahaya menyapu berkala (Periodic Light Flash) */}
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none animate-btn-flash" />
+
+                    {/* Kilatan cahaya ekstra saat kursor mengarah (Hover Flash) */}
+                    <div className="absolute -inset-full w-[200%] h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none" />
+
+                    {/* Button text */}
+                    <span className="relative z-10 font-black tracking-tight whitespace-nowrap">
+                      {ctaButtonLabel}
+                    </span>
+
+                    {/* Arrow icon with hover forward slide */}
+                    <ArrowRight className="w-4 h-4 shrink-0 relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+                  </button>
+                </div>
               </motion.div>
             </Section>
           </div>
@@ -505,9 +585,34 @@ export default function Home() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="py-8 bg-background relative z-20 text-[13px] text-foreground/70">
-        <div className="container mx-auto px-5 sm:px-8 flex items-center justify-center">
-          <span className="text-[11.5px] text-foreground/60 font-mono text-center">{getLocalizedText(contentConfig, locale, 'footerCopyright', t("footer_copyright"))}</span>
+      <footer className="border-t border-border/40 py-8 bg-background relative z-20 text-[13px] text-foreground/70">
+        <div className="container mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-[11.5px] text-foreground/60 font-mono text-center sm:text-left">
+            {getLocalizedText(contentConfig, locale, 'footerCopyright', t("footer_copyright"))}
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setActiveModal('about')}
+              className="text-foreground/70 hover:text-foreground hover:underline transition-colors cursor-pointer font-medium"
+            >
+              {locale === 'id-ID' ? 'About' : t("footer_company_about")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveModal('terms')}
+              className="text-foreground/70 hover:text-foreground hover:underline transition-colors cursor-pointer font-medium"
+            >
+              {locale === 'id-ID' ? 'S&K' : t("footer_terms")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveModal('privacy')}
+              className="text-foreground/70 hover:text-foreground hover:underline transition-colors cursor-pointer font-medium"
+            >
+              {locale === 'id-ID' ? 'Kebijakan Privasi' : t("footer_privacy")}
+            </button>
+          </div>
         </div>
       </footer>
 
@@ -533,10 +638,14 @@ export default function Home() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/40">
                 <div className="flex items-center gap-2">
                   {activeModal === 'about' && <Users className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
+                  {activeModal === 'terms' && <FileText className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
+                  {activeModal === 'privacy' && <ShieldCheck className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
                   {activeModal === 'contact' && <MapPin className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
                   {activeModal === 'share' && <Share2 className="w-5 h-5" style={{ color: "hsl(var(--brand-accent))" }} />}
                   <h3 className="font-bold text-lg text-foreground">
-                    {activeModal === 'about' && t("footer_company_about")}
+                    {activeModal === 'about' && (locale === 'id-ID' ? 'About PartnerFind' : t("footer_company_about"))}
+                    {activeModal === 'terms' && (locale === 'id-ID' ? 'Syarat & Ketentuan (S&K)' : t("footer_terms"))}
+                    {activeModal === 'privacy' && (locale === 'id-ID' ? 'Kebijakan Privasi' : t("footer_privacy"))}
                     {activeModal === 'contact' && t("footer_company_contact")}
                     {activeModal === 'share' && shareConfig.shareTitle}
                   </h3>
@@ -647,6 +756,28 @@ export default function Home() {
                   </>
                 )}
 
+                {activeModal === 'terms' && (
+                  <div className="space-y-3">
+                    <p>{legalData.terms.intro}</p>
+                    <ul className="list-disc pl-5 space-y-2 text-foreground/80">
+                      {legalData.terms.points.map((point, idx) => (
+                        <li key={idx}>{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'privacy' && (
+                  <div className="space-y-3">
+                    <p>{legalData.privacy.intro}</p>
+                    <ul className="list-disc pl-5 space-y-2 text-foreground/80">
+                      {legalData.privacy.points.map((point, idx) => (
+                        <li key={idx}>{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {activeModal === 'contact' && (
                   <>
                     <p className="text-foreground/80">
@@ -679,6 +810,12 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── PARTNERSHIP AUTO-MATCH FORM MODAL ── */}
+      <PartnershipFormModal
+        isOpen={isPartnershipModalOpen}
+        onClose={() => setIsPartnershipModalOpen(false)}
+      />
     </div>
   );
 }
